@@ -1,10 +1,9 @@
-// GetAssetPath(int) は 6000.3 で deprecated だが、代替の EntityId API は 6000.1 に存在しない
-#pragma warning disable CS0618
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using UnityEditor;
+using UnityEngine;
 
 namespace ProjectWindowHistory
 {
@@ -129,47 +128,24 @@ namespace ProjectWindowHistory
         }
 
         /// <summary>
-        /// 左側のツリーで選択したフォルダのインスタンスIDを取得する
+        /// 左側のツリーで選択したフォルダのEntity IDを取得する
         /// </summary>
         /// <returns></returns>
-        public static int[] GetLastFolderInstanceIds(EditorWindow targetProjectWindow)
+        public static EntityId[] GetLastFolderEntityIds(EditorWindow targetProjectWindow)
         {
-#if UNITY_6000_3_OR_NEWER
-            // GetFolderInstanceIDs は 6000.3 で EntityId[] を返すようになったため、
-            // m_LastFolders のパスからインスタンスIDに変換する
-            var lastFolderPaths = LastFoldersField.GetValue(targetProjectWindow) as string[];
-            if (lastFolderPaths == null || lastFolderPaths.Length == 0)
-                return Array.Empty<int>();
-
-            return lastFolderPaths
-                .Select(path => AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(path))
-                .Where(obj => obj != null)
-                .Select(obj => obj.GetInstanceID())
-                .ToArray();
-#else
-            // 選択中のフォルダのパス配列を取得し、GetFolderInstanceIDs でインスタンスIDに変換する
+            // 選択中のフォルダのパス配列を取得し、GetFolderInstanceIDs でEntity IDに変換する
             var lastFolderPaths = LastFoldersField.GetValue(targetProjectWindow) ?? Array.Empty<object>();
-            return (int[]) GetFolderInstanceIDsMethod.Invoke(null, new[] { lastFolderPaths });
-#endif
+            return (EntityId[]) GetFolderInstanceIDsMethod.Invoke(null, new[] { lastFolderPaths });
         }
 
         /// <summary>
-        /// 指定したインスタンスIDのフォルダを選択状態にする
+        /// 指定したEntity IDのフォルダを選択状態にする
         /// </summary>
         /// <param name="targetProjectWindow"></param>
-        /// <param name="selectedFolderInstanceIds"></param>
-        public static void SetFolderSelection(EditorWindow targetProjectWindow, int[] selectedFolderInstanceIds)
+        /// <param name="selectedFolderEntityIds"></param>
+        public static void SetFolderSelection(EditorWindow targetProjectWindow, EntityId[] selectedFolderEntityIds)
         {
-#if UNITY_6000_3_OR_NEWER
-            var entityIds = selectedFolderInstanceIds
-                .Select(id => EditorUtility.InstanceIDToObject(id))
-                .Where(obj => obj != null)
-                .Select(obj => obj.GetEntityId())
-                .ToArray();
-            SetFolderSelectionMethod.Invoke(targetProjectWindow, new object[] { entityIds, false });
-#else
-            SetFolderSelectionMethod.Invoke(targetProjectWindow, new object[] { selectedFolderInstanceIds, false });
-#endif
+            SetFolderSelectionMethod.Invoke(targetProjectWindow, new object[] { selectedFolderEntityIds, false });
         }
 
         /// <summary>
@@ -187,15 +163,15 @@ namespace ProjectWindowHistory
         /// </summary>
         /// <param name="targetProjectWindow"></param>
         /// <param name="searchedText"></param>
-        /// <param name="selectedFolderInstanceIds"></param>
-        public static void SetSearch(EditorWindow targetProjectWindow, string searchedText, int[] selectedFolderInstanceIds)
+        /// <param name="selectedFolderEntityIds"></param>
+        public static void SetSearch(EditorWindow targetProjectWindow, string searchedText, EntityId[] selectedFolderEntityIds)
         {
             // 検索文字列からsearchFilterを生成する
             var searchFilter = CreateSearchFilterFromStringMethod.Invoke(null, new object[] { searchedText });
 
             // searchFilterに選択中のフォルダを設定する
-            var selectedFolderPathList = selectedFolderInstanceIds
-                .Select(id => AssetDatabase.GetAssetPath(EditorUtility.InstanceIDToObject(id)))
+            var selectedFolderPathList = selectedFolderEntityIds
+                .Select(AssetDatabase.GetAssetPath)
                 .ToArray();
             SearchFilterFoldersField.SetValue(searchFilter, selectedFolderPathList);
 

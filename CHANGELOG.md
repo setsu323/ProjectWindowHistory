@@ -1,5 +1,11 @@
 # ChangeLog
 
+## [Unreleased]
+### Changed
+- Unity 6000.7 以降に対応
+  - ProjectWindow とフォルダの識別子を `InstanceID` から `EntityId` に移行
+  - Unity 6000.6 以前のサポートを終了
+
 ## [1.1.0] - 2026-03-28
 ### Changed
 - Unity 6000.3 互換性対応

@@ -1,5 +1,3 @@
-// GetAssetPath(int) は 6000.3 で deprecated だが、代替の EntityId API は 6000.1 に存在しない
-#pragma warning disable CS0618
 using System.Linq;
 using UnityEditor;
 using UnityEngine;
@@ -126,8 +124,8 @@ namespace ProjectWindowHistory
         /// <param name="record"></param>
         private void ApplyHistoryRecord(ProjectWindowHistoryRecord record)
         {
-            ProjectWindowReflectionUtility.SetFolderSelection(_projectWindow, record.SelectedFolderInstanceIDs);
-            ProjectWindowReflectionUtility.SetSearch(_projectWindow, record.SearchedText, record.SelectedFolderInstanceIDs);
+            ProjectWindowReflectionUtility.SetFolderSelection(_projectWindow, record.SelectedFolderEntityIds);
+            ProjectWindowReflectionUtility.SetSearch(_projectWindow, record.SearchedText, record.SelectedFolderEntityIds);
             if (record.SearchViewState > 0)
             {
                 ProjectWindowReflectionUtility.SetSearchViewState(_projectWindow, record.SearchViewState);
@@ -200,7 +198,7 @@ namespace ProjectWindowHistory
             var isSearchedTextChanged = searchedText != currentRecord?.SearchedText;
             if (isSearchedTextChanged)
             {
-                var record = new ProjectWindowHistoryRecord(currentRecord?.SelectedFolderInstanceIDs, searchedText, searchViewState);
+                var record = new ProjectWindowHistoryRecord(currentRecord?.SelectedFolderEntityIds, searchedText, searchViewState);
                 _history.SetCurrentRecord(record);
                 RefreshButtons();
             }
@@ -218,8 +216,8 @@ namespace ProjectWindowHistory
         /// </summary>
         private void CheckSelectedFolder()
         {
-            var selectedFolderInstanceIds = ProjectWindowReflectionUtility.GetLastFolderInstanceIds(_projectWindow);
-            var isFolderSelected = selectedFolderInstanceIds != null && selectedFolderInstanceIds.Any();
+            var selectedFolderEntityIds = ProjectWindowReflectionUtility.GetLastFolderEntityIds(_projectWindow);
+            var isFolderSelected = selectedFolderEntityIds != null && selectedFolderEntityIds.Any();
 
             // ツリービューでフォルダが選択されていなければ何もしない
             if (!isFolderSelected)
@@ -227,15 +225,15 @@ namespace ProjectWindowHistory
                 return;
             }
 
-            selectedFolderInstanceIds = selectedFolderInstanceIds
-                .Where(instanceId => AssetDatabase.IsValidFolder(AssetDatabase.GetAssetPath(instanceId)))
+            selectedFolderEntityIds = selectedFolderEntityIds
+                .Where(entityId => AssetDatabase.IsValidFolder(AssetDatabase.GetAssetPath(entityId)))
                 .ToArray();
             var lastRecord = _history.CurrentRecord;
-            var lastSelectedFolderInstanceIds = lastRecord?.SelectedFolderInstanceIDs;
-            var isFirstFolderSelected = lastSelectedFolderInstanceIds == null;
+            var lastSelectedFolderEntityIds = lastRecord?.SelectedFolderEntityIds;
+            var isFirstFolderSelected = lastSelectedFolderEntityIds == null;
 
             // 初めてフォルダを選択した、もしくは選択フォルダが最新履歴と変わったら履歴に追加
-            if (isFirstFolderSelected || !selectedFolderInstanceIds.SequenceEqual(lastSelectedFolderInstanceIds))
+            if (isFirstFolderSelected || !selectedFolderEntityIds.SequenceEqual(lastSelectedFolderEntityIds))
             {
                 // 検索範囲が選択フォルダ内なら検索を維持しつつフォルダ選択され、それ以外の検索範囲なら検索はリセットされる
                 var isSearchedSubFolders = lastRecord?.SearchViewState == SearchViewState.SubFolders;
@@ -243,7 +241,7 @@ namespace ProjectWindowHistory
                 var searchViewState = isSearchedSubFolders ? SearchViewState.SubFolders : SearchViewState.NotSearching;
 
                 // 履歴に追加する
-                var record = new ProjectWindowHistoryRecord(selectedFolderInstanceIds, searchedText, searchViewState);
+                var record = new ProjectWindowHistoryRecord(selectedFolderEntityIds, searchedText, searchViewState);
                 _history.SetCurrentRecord(record);
                 RefreshButtons();
             }

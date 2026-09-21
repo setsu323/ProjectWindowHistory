@@ -1,5 +1,3 @@
-// InstanceIDToObject(int), GetAssetPath(int) は 6000.3 で deprecated だが、代替の EntityId API は 6000.1 に存在しない
-#pragma warning disable CS0618
 using System;
 using System.IO;
 using System.Linq;
@@ -15,17 +13,17 @@ namespace ProjectWindowHistory
     [Serializable]
     public class ProjectWindowHistoryRecord
     {
-        [SerializeField] private int[] _selectedFolderInstanceIds;
+        [SerializeField] private EntityId[] _selectedFolderEntityIds;
         [SerializeField] private string _searchedText;
         [SerializeField] private SearchViewState _searchViewState;
 
-        public int[] SelectedFolderInstanceIDs => _selectedFolderInstanceIds;
+        public EntityId[] SelectedFolderEntityIds => _selectedFolderEntityIds;
         public string SearchedText => _searchedText;
         public SearchViewState SearchViewState => _searchViewState;
 
-        public ProjectWindowHistoryRecord(int[] selectedFolderInstanceIds, string searchedText, SearchViewState searchViewState)
+        public ProjectWindowHistoryRecord(EntityId[] selectedFolderEntityIds, string searchedText, SearchViewState searchViewState)
         {
-            _selectedFolderInstanceIds = selectedFolderInstanceIds;
+            _selectedFolderEntityIds = selectedFolderEntityIds;
             _searchedText = searchedText;
             _searchViewState = searchViewState;
         }
@@ -38,8 +36,8 @@ namespace ProjectWindowHistory
         public bool IsValid()
         {
             // フォルダが何かしら削除されていた場合は無効にしておく
-            return (_selectedFolderInstanceIds?.Any() ?? false)
-                   && _selectedFolderInstanceIds.All(instanceId => EditorUtility.InstanceIDToObject(instanceId) != null); // CS0618 suppressed at file level
+            return (_selectedFolderEntityIds?.Any() ?? false)
+                   && _selectedFolderEntityIds.All(entityId => EditorUtility.EntityIdToObject(entityId) != null);
         }
 
         /// <summary>
@@ -68,15 +66,15 @@ namespace ProjectWindowHistory
             string SelectedFolderToLabelText()
             {
                 const int displayFolderCountMax = 3; // 表示は最大3件
-                var targetFolderNames = _selectedFolderInstanceIds
+                var targetFolderNames = _selectedFolderEntityIds
                     .Take(displayFolderCountMax)
-                    .Select(id =>
+                    .Select(entityId =>
                     {
-                        var path = AssetDatabase.GetAssetPath(id);
+                        var path = AssetDatabase.GetAssetPath(entityId);
                         return Path.GetFileName(path);
                     });
 
-                var suffix = _selectedFolderInstanceIds.Length > displayFolderCountMax ? "+" : string.Empty;
+                var suffix = _selectedFolderEntityIds.Length > displayFolderCountMax ? "+" : string.Empty;
                 return string.Join(",", targetFolderNames) + suffix;
             }
         }
